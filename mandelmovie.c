@@ -4,6 +4,7 @@
  * 
  * Brief summary of program:
  * uses -n child processes to generate 50 mandelbrot frames.
+ * Passes -t threads to children.
  */
 
 #include <stdio.h>
@@ -21,17 +22,21 @@
 
 int main(int argc, char* argv[]) {
 
-    int num_processes = 1; // default
+    int num_processes = 1;
+    int num_threads = 1;
     int c;
 
     // parse -n arg
-    while ((c = getopt(argc, argv, "n:")) != -1) {
+    while ((c = getopt(argc, argv, "n:t:")) != -1) {
         switch (c) {
             case 'n':
                 num_processes = atoi(optarg);
                 break;
+            case 't':
+                num_threads = atoi(optarg);
+                break;
             case '?': 
-                fprintf(stderr, "Usage: %s -n <num_processes>\n", argv[0]);
+                fprintf(stderr, "Usage: %s -n <num_processes> -t <threads>\n", argv[0]);
                 return 1;
         }
     }
@@ -41,7 +46,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    printf("Generating %d frames using %d concurrent processes...\n", TOTAL_FRAMES, num_processes);
+    if (num_threads < 1 || num_threads > 20) {
+        fprintf(stderr, "Error: Number of threads must be between 1 and 20\n");
+        return 1;
+    }
+
+    printf("Generating %d frames using %d concurrent processes and %d threads per process...\n", TOTAL_FRAMES, num_processes, num_threads);
 
     double start_scale = 1.0;
     double end_scale = 0.0005;
@@ -50,6 +60,9 @@ int main(int argc, char* argv[]) {
     int running_jobs = 0;
     int frame_index = 0; // next frame to start
     int frames_done = 0; // frames completed
+
+    char threads_str[4];
+    sprintf(threads_str, "%d", num_threads);
 
     // loop til all frames are done
     while (frames_done < TOTAL_FRAMES) {
@@ -76,6 +89,7 @@ int main(int argc, char* argv[]) {
                     "-o", file_str,
                     "-W", "800",   
                     "-H", "800",
+                    "-t", threads_str,
                     NULL
                 };
 
